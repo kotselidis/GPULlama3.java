@@ -133,6 +133,19 @@ implementation 'io.github.beehive-lab:jitllm:1.0.0-jdk25'
 
 -----------
 
+## Kotlin
+
+[`jitllm-kotlin`](jitllm-kotlin/README.md) is a Kotlin API over the Java one: `suspend`
+generation, `Flow` streaming, cancellation by cancelling the coroutine, and a chat DSL.
+
+```kotlin
+JitLlm.load(Path.of("model.gguf")) { contextLength = 4096 }.use { model ->
+    model.session().use { session ->
+        session.stream("Why is the sky blue?").collect { print(it) }
+    }
+}
+```
+
 ## 🛠️ Install & build
 
 ### Prerequisites
