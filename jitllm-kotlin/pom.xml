@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.beehive-lab</groupId>
+    <artifactId>jitllm-kotlin</artifactId>
+    <version>1.0.0${jdk.version.suffix}</version>
+    <packaging>jar</packaging>
+
+    <name>jitllm-kotlin</name>
+    <description>Kotlin API for jitllm: suspend functions, Flow streaming, coroutine cancellation and a chat DSL</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- The jitllm artifact this library wraps. The -jdk25 build needs a JDK 25; build with
+             -Djdk.version.suffix=-jdk21 -Djvm.target=21 to wrap the -jdk21 one instead. -->
+        <jdk.version.suffix>-jdk25</jdk.version.suffix>
+        <jvm.target>25</jvm.target>
+        <jitllm.version>1.0.0${jdk.version.suffix}</jitllm.version>
+        <kotlin.version>2.4.20</kotlin.version>
+        <kotlinx.coroutines.version>1.11.0</kotlinx.coroutines.version>
+        <junit.jupiter.version>5.11.4</junit.jupiter.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.beehive-lab</groupId>
+            <artifactId>jitllm</artifactId>
+            <version>${jitllm.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-core</artifactId>
+            <version>${kotlinx.coroutines.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-test-junit5</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
+        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <configuration>
+                    <jvmTarget>${jvm.target}</jvmTarget>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <args>
+                                <!-- Public declarations need explicit visibility and types, as in a library. -->
+                                <arg>-Xexplicit-api=strict</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <goals>
+                            <goal>test-compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <!-- jitllm uses the Vector API on the CPU. -->
+                    <argLine>--enable-preview --add-modules jdk.incubator.vector</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <!-- Runs ModelTest on the accelerator of the TornadoVM SDK in $TORNADOVM_HOME, with the
+                 flags jitllm's own accel-tests profile uses. -->
+            <id>accel-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>@${env.TORNADOVM_HOME}/tornado-argfile
+                                    --add-modules jdk.incubator.vector
+                                    -da:tornado.graal...
+                                    -Duse.tornadovm=true
+                                    -Dtornado.recover.bailout=False
+                                    -Djitllm.deviceSample=false
+                                    -Dtornado.device.memory=20GB
+                                    -Dtornado.cuda.priority=100
+                                    -Dtornado.opencl.priority=0</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
