@@ -86,6 +86,9 @@
         <!-- The qualifier TornadoVM's own develop builds carry; emptied by the release profile. -->
         <tornadovm.dev.qualifier>-dev</tornadovm.dev.qualifier>
         <archunit.version>1.4.2</archunit.version>
+        <!-- Kotlin kernels (spike): kernels written in Kotlin, compiled by TornadoVM through its
+             Kotlin support (tornado-kotlin-api, TornadoVM 7.0.2+). -->
+        <kotlin.version>2.4.20</kotlin.version>
         <jdk.version.suffix>-jdk21</jdk.version.suffix>
         <!-- TornadoVM's own JDK suffix, a separate property from jdk.version.suffix above
                  (which names *this* project's published artifact). Both lines currently match
@@ -152,10 +155,46 @@
             <version>${tornadovm.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Kotlin kernels: the Kotlin API of TornadoVM (parallelFor) and the Kotlin runtime,
+             shaded into the jar so any TornadoVM SDK with Kotlin runtime support can run it. -->
+        <dependency>
+            <groupId>io.github.beehive-lab</groupId>
+            <artifactId>tornado-kotlin-api</artifactId>
+            <version>${tornadovm.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- Kotlin kernels are compiled before javac (process-sources), so the Java code
+                 that wires them into task-graphs sees them as ordinary classes. -->
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <configuration>
+                    <jvmTarget>22</jvmTarget>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>kotlin-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                        <configuration>
+                            <sourceDirs>
+                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+                            </sourceDirs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- The Vector API is an incubator module on both supported JDKs (JEP 508 in
                      JDK 25), so add-modules is required to compile against it. enable-preview is
                      added by the JDK 21 profile only: java.lang.foreign was a preview API in 21
